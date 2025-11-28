@@ -3,466 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Apartado y Planes de Pago</title>
-    <!-- Bootstrap 5 CDN -->
+    <title>Sistema de Apartado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Librerías para Generación de Archivos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
-    <!-- Estilos Personalizados (usando una fuente moderna y sombras) -->
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f9fc;
-        }
-        .card-apartado {
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border: none;
-        }
-        .header-apartado {
-            background-color: #007bff; /* Azul primario de Bootstrap */
-            color: white;
-            border-top-left-radius: 1rem;
-            border-top-right-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .plan-option {
-            border: 2px solid #ddd;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .plan-option.selected {
-            border-color: #28a745; /* Verde para selección */
-            background-color: #e2f0e6;
-            box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        .pdf-content {
-            padding: 20px;
-            font-size: 10pt;
-            background-color: white;
-            color: #333;
-            width: 100%;
-        }
-        @media (max-width: 768px) {
-            .card-apartado {
-                margin: 1rem;
-            }
+        body { background: #f8f9fa; }
+        .plan-option { cursor: pointer; transition: all 0.2s; }
+        .plan-option.selected { border-color: #198754 !important; background: #d1e7dd; }
+        @media print {
+            body * { visibility: hidden; }
+            #pdfContent, #pdfContent * { visibility: visible; }
+            #pdfContent { position: absolute; left: 0; top: 0; width: 210mm; }
         }
     </style>
 </head>
 <body>
-
-    <div class="container my-5">
-        <div class="card card-apartado mx-auto" style="max-width: 900px;">
-            <div class="header-apartado">
-                <h1 class="h4">Sistema de Gestión de Apartados (COP)</h1>
-                <p class="mb-0">Relojes y Perfumes - Define el plan de pagos.</p>
+    <div class="container my-4">
+        <div class="card shadow-sm mx-auto" style="max-width: 800px;">
+            <div class="card-header bg-primary text-white text-center py-2">
+                <h5 class="mb-0">Sistema de Apartados - COP</h5>
             </div>
-            <div class="card-body p-4 p-md-5">
-                <form id="apartadoForm">
-
-                    <!-- SECCIÓN 1: DATOS DEL PRODUCTO -->
-                    <h5 class="mb-3 text-primary">1. Producto y Valor</h5>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label for="productName" class="form-label">Nombre del Producto</label>
-                            <input type="text" class="form-control" id="productName" value="Reloj o Perfume Ejemplo" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="totalValue" class="form-label">Valor Total (COP)</label>
-                            <input type="number" class="form-control" id="totalValue" value="140000" min="1000" required>
-                        </div>
+            <div class="card-body p-3">
+                <form id="apartadoForm" class="row g-2">
+                    <div class="col-md-8"><input type="text" class="form-control form-control-sm" id="productName" placeholder="Producto" value="Reloj/Perfume" required></div>
+                    <div class="col-md-4"><input type="number" class="form-control form-control-sm" id="totalValue" placeholder="Valor" value="140000" min="1000" required></div>
+                    <div class="col-md-6"><input type="text" class="form-control form-control-sm" id="clientName" placeholder="Nombre completo" value="Juan Pérez" required></div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="docType">
+                            <option value="C.C.">C.C.</option>
+                            <option value="C.E.">C.E.</option>
+                        </select>
                     </div>
-
-                    <!-- SECCIÓN 2: DATOS DEL CLIENTE -->
-                    <h5 class="mb-3 text-primary">2. Datos del Cliente y Fecha</h5>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label for="clientName" class="form-label">Nombre Completo del Cliente</label>
-                            <input type="text" class="form-control" id="clientName" value="Juan Pérez" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="docType" class="form-label">Tipo Doc.</label>
-                            <select class="form-select" id="docType" required>
-                                <option value="C.C." selected>C.C.</option>
-                                <option value="C.E.">C.E.</option>
-                                <option value="Otro">Otro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="docNumber" class="form-label">No. Documento</label>
-                            <input type="text" class="form-control" id="docNumber" value="1037654321" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="clientPhone" class="form-label">Teléfono de Contacto</label>
-                            <input type="text" class="form-control" id="clientPhone" value="3101234567" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="startDate" class="form-label">Fecha de Inicio del Apartado</label>
-                            <input type="date" class="form-control" id="startDate" required>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 3: SELECCIÓN DE PLAN -->
-                    <h5 class="mb-3 text-primary">3. Seleccione el Plan de Apartado</h5>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="plan-option" id="optionA" data-plan="A">
-                                <h6>✨ Opción A: Súper Rápido (2 Meses)</h6>
-                                <p class="mb-0 small">Cuota Inicial: **50%** | Plazo Máximo: **60 días**.</p>
+                    <div class="col-md-3"><input type="text" class="form-control form-control-sm" id="docNumber" placeholder="No. Doc" value="1037654321" required></div>
+                    <div class="col-md-6"><input type="text" class="form-control form-control-sm" id="clientPhone" placeholder="Teléfono" value="3101234567" required></div>
+                    <div class="col-md-6"><input type="date" class="form-control form-control-sm" id="startDate" required></div>
+                    
+                    <div class="col-12 mt-3">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="border rounded p-2 plan-option" id="optionA" data-plan="A">
+                                    <strong class="d-block">Opción A: 2 Meses</strong>
+                                    <small class="text-muted">50% inicial</small>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="plan-option" id="optionB" data-plan="B">
-                                <h6>✨ Opción B: Cuotas Fijas (4 Meses)</h6>
-                                <p class="mb-0 small">Cuota Inicial: **25%** | Plazo Máximo: **120 días**.</p>
+                            <div class="col-6">
+                                <div class="border rounded p-2 plan-option" id="optionB" data-plan="B">
+                                    <strong class="d-block">Opción B: 4 Meses</strong>
+                                    <small class="text-muted">25% inicial</small>
+                                </div>
                             </div>
                         </div>
                         <input type="hidden" id="selectedPlan" required>
                     </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-3 mt-3">Generar Plan de Pagos</button>
+                    
+                    <div class="col-12 mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Generar Contrato</button>
+                    </div>
                 </form>
 
-                <!-- RESULTADOS -->
-                <div id="resultsSection" class="mt-5" style="display: none;">
-                    <h4 class="text-success mb-4">✅ Plan Generado y Listo para Imprimir</h4>
-                    
-                    <div class="table-responsive mb-4">
-                        <table class="table table-bordered table-striped">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th>Pago</th>
-                                    <th>Monto a Pagar</th>
-                                    <th>Fecha Límite</th>
-                                    <th>Días Restantes</th>
-                                </tr>
-                            </thead>
-                            <tbody id="paymentTableBody">
-                                <!-- Filas de pagos inyectadas por JS -->
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="2" class="text-end"><strong>VALOR TOTAL APARTADO</strong></td>
-                                    <td colspan="2" id="finalTotal"></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                <div id="resultsSection" class="mt-3" style="display:none;">
+                    <div class="d-flex gap-2 mb-2">
+                        <button class="btn btn-success btn-sm" onclick="generateCSV()">Descargar CSV</button>
+                        <button class="btn btn-danger btn-sm" onclick="generatePDF()">Generar PDF</button>
                     </div>
-
-                    <p class="small text-muted border-start border-3 border-danger ps-2">
-                        **Fechas Clave:** Fecha Límite de Devolución (30 días): <span id="refundDate"></span> | Fecha Límite de Abandono: <span id="abandonmentDate"></span>
-                    </p>
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button class="btn btn-success me-md-2" type="button" onclick="generateCSV()">
-                            Descargar Excel (CSV)
-                        </button>
-                        <button class="btn btn-danger" type="button" onclick="generatePDF()">
-                            Generar Contrato (PDF)
-                        </button>
-                    </div>
+                    <div id="paymentSummary" class="alert alert-success py-2 small mb-0"></div>
                 </div>
-
-                <!-- CONTENIDO OCULTO PARA PDF (Se inyecta al generar el plan) -->
-                <div id="pdfContent" class="pdf-content" style="display: none; height: 0;">
-                    <!-- Este div se llenará con el contenido del contrato antes de generar el PDF -->
-                </div>
-
             </div>
         </div>
     </div>
 
+    <div id="pdfContent" style="display:none; width:210mm; padding:15mm; font-size:10pt; background:white; color:#000;"></div>
+
     <script>
+        const $ = id => document.getElementById(id);
+        const formatCOP = n => new Intl.NumberFormat('es-CO', {style:'currency', currency:'COP', minimumFractionDigits:0}).format(n);
+        const addMonths = (d, m) => { const nd = new Date(d); nd.setMonth(nd.getMonth() + m); return nd; };
+        
         document.addEventListener('DOMContentLoaded', () => {
-            // Inicializar la fecha de inicio con la fecha actual
             const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('startDate').value = `${yyyy}-${mm}-${dd}`;
-
-            // Manejar la selección de opciones A y B
-            const optionA = document.getElementById('optionA');
-            const optionB = document.getElementById('optionB');
-            const selectedPlanInput = document.getElementById('selectedPlan');
-
-            function selectPlan(planElement) {
-                optionA.classList.remove('selected');
-                optionB.classList.remove('selected');
-                planElement.classList.add('selected');
-                selectedPlanInput.value = planElement.dataset.plan;
-            }
-
-            optionA.addEventListener('click', () => selectPlan(optionA));
-            optionB.addEventListener('click', () => selectPlan(optionB));
-
-            // Manejar el envío del formulario
-            document.getElementById('apartadoForm').addEventListener('submit', function(e) {
+            $('startDate').value = today.toISOString().split('T')[0];
+            
+            ['optionA', 'optionB'].forEach(id => {
+                $(id).addEventListener('click', function() {
+                    document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
+                    this.classList.add('selected');
+                    $('selectedPlan').value = this.dataset.plan;
+                });
+            });
+            
+            $('apartadoForm').addEventListener('submit', e => {
                 e.preventDefault();
-                calculatePayments();
+                if (!$('selectedPlan').value) return alert('Seleccione un plan');
+                generateContract();
             });
         });
 
-        // Función para formatear a COP
-        const formatCurrency = (amount) => {
-            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
-        };
+        function generateContract() {
+            const data = {
+                product: $('productName').value,
+                total: parseFloat($('totalValue').value),
+                client: $('clientName').value,
+                docType: $('docType').value,
+                docNum: $('docNumber').value,
+                phone: $('clientPhone').value,
+                plan: $('selectedPlan').value,
+                start: new Date($('startDate').value)
+            };
 
-        // Función principal de cálculo
-        function calculatePayments() {
-            const productName = document.getElementById('productName').value;
-            const totalValue = parseFloat(document.getElementById('totalValue').value);
-            const selectedPlan = document.getElementById('selectedPlan').value;
-            const startDateStr = document.getElementById('startDate').value;
-
-            if (!productName || isNaN(totalValue) || totalValue <= 0 || !selectedPlan || !startDateStr) {
-                alert("Por favor, complete todos los campos y seleccione un plan.");
-                return;
-            }
-
-            const startDate = new Date(startDateStr);
             let payments = [];
-            let totalPayments = 0;
-            let initialPercentage = 0;
-            let totalMonths = 0;
-
-            if (selectedPlan === 'A') {
-                initialPercentage = 0.50; // 50%
-                totalMonths = 2;
-                
-                const payment1 = Math.round(totalValue * initialPercentage);
-                const payment2 = totalValue - payment1;
-
-                payments.push({ id: 1, type: "Inicial (50%)", amount: payment1, date: startDate });
-                payments.push({ id: 2, type: "Final (50%)", amount: payment2, date: addMonths(startDate, 2) });
-            } else if (selectedPlan === 'B') {
-                initialPercentage = 0.25; // 25%
-                totalMonths = 4;
-                
-                const fixedAmount = Math.round(totalValue * initialPercentage);
-                const remainder = totalValue - (fixedAmount * 4); // Ajuste por redondeo si es necesario
-
-                payments.push({ id: 1, type: "Inicial (25%)", amount: fixedAmount + remainder, date: startDate }); // El ajuste se añade al primer pago
-                for (let i = 2; i <= 4; i++) {
-                    payments.push({ id: i, type: `Cuota Mensual (${i-1} de 3)`, amount: fixedAmount, date: addMonths(startDate, i - 1) });
-                }
+            if (data.plan === 'A') {
+                const p1 = Math.round(data.total * 0.5);
+                payments = [
+                    {n:1, desc:'Inicial (50%)', amt:p1, date:data.start},
+                    {n:2, desc:'Final (50%)', amt:data.total-p1, date:addMonths(data.start, 2)}
+                ];
+            } else {
+                const fixed = Math.round(data.total * 0.25);
+                const adj = data.total - (fixed * 4);
+                payments = [
+                    {n:1, desc:'Inicial (25%)', amt:fixed+adj, date:data.start},
+                    {n:2, desc:'Cuota 2', amt:fixed, date:addMonths(data.start, 1)},
+                    {n:3, desc:'Cuota 3', amt:fixed, date:addMonths(data.start, 2)},
+                    {n:4, desc:'Cuota 4', amt:fixed, date:addMonths(data.start, 3)}
+                ];
             }
 
-            renderPaymentTable(payments, totalValue);
-            generateAgreementContent(productName, totalValue, payments, selectedPlan, startDate);
-            document.getElementById('resultsSection').style.display = 'block';
-        }
-
-        // Función para añadir meses a una fecha
-        function addMonths(date, months) {
-            const d = new Date(date);
-            d.setDate(1); // Evitar problemas de final de mes
-            d.setMonth(d.getMonth() + months);
-            const day = date.getDate();
-            d.setDate(Math.min(day, daysInMonth(d.getFullYear(), d.getMonth())));
-            return d;
-        }
-
-        // Función para obtener días en el mes
-        function daysInMonth(year, month) {
-            return new Date(year, month + 1, 0).getDate();
-        }
-
-        // Función para calcular la diferencia de días
-        function dateDiffInDays(a, b) {
-            const _MS_PER_DAY = 1000 * 60 * 60 * 24;
-            const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-            const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-            return Math.floor((utc2 - utc1) / _MS_PER_DAY);
-        }
-
-        // Renderizar la tabla de pagos en el HTML
-        function renderPaymentTable(payments, totalValue) {
-            const today = new Date();
-            const tableBody = document.getElementById('paymentTableBody');
-            tableBody.innerHTML = '';
+            const refundDate = addMonths(data.start, 1);
+            const abandonDate = addMonths(payments[payments.length-1].date, 3);
             
-            payments.forEach(p => {
-                const diffDays = dateDiffInDays(today, p.date);
-                const row = `
-                    <tr>
-                        <td>${p.id}. ${p.type}</td>
-                        <td>${formatCurrency(p.amount)}</td>
-                        <td>${p.date.toLocaleDateString('es-CO')}</td>
-                        <td>${diffDays >= 0 ? diffDays + ' días' : 'VENCIDA'}</td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
+            let tableRows = payments.map(p => 
+                `<tr><td>${p.desc}</td><td>${formatCOP(p.amt)}</td><td>${p.date.toLocaleDateString('es-CO')}</td></tr>`
+            ).join('');
 
-            document.getElementById('finalTotal').textContent = formatCurrency(totalValue);
-
-            // Calcular fechas clave
-            const startDate = payments[0].date;
-            const refundDate = addMonths(startDate, 1);
-            const finalDate = payments[payments.length - 1].date;
-            const abandonmentDate = addMonths(finalDate, 3); // 3 meses después de la fecha final
-
-            document.getElementById('refundDate').textContent = refundDate.toLocaleDateString('es-CO');
-            document.getElementById('abandonmentDate').textContent = abandonmentDate.toLocaleDateString('es-CO');
-        }
-
-        // Generar el contenido del contrato (HTML para PDF)
-        function generateAgreementContent(productName, totalValue, payments, selectedPlan, startDate) {
-            const clientName = document.getElementById('clientName').value;
-            const docType = document.getElementById('docType').value;
-            const docNumber = document.getElementById('docNumber').value;
-            const clientPhone = document.getElementById('clientPhone').value;
-            
-            const finalDate = payments[payments.length - 1].date.toLocaleDateString('es-CO');
-            const refundDate = addMonths(startDate, 1).toLocaleDateString('es-CO');
-            const abandonmentDate = addMonths(payments[payments.length - 1].date, 3).toLocaleDateString('es-CO');
-
-            let paymentPlanHtml = '<table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt;"><thead><tr style="background-color: #f2f2f2;">';
-            paymentPlanHtml += '<th style="border: 1px solid #ddd; padding: 5px;">Pago</th><th style="border: 1px solid #ddd; padding: 5px;">Monto a Pagar</th><th style="border: 1px solid #ddd; padding: 5px;">Fecha Límite</th></tr></thead><tbody>';
-            
-            payments.forEach(p => {
-                paymentPlanHtml += `<tr><td style="border: 1px solid #ddd; padding: 5px;">${p.type}</td><td style="border: 1px solid #ddd; padding: 5px;">${formatCurrency(p.amount)}</td><td style="border: 1px solid #ddd; padding: 5px;">${p.date.toLocaleDateString('es-CO')}</td></tr>`;
-            });
-            paymentPlanHtml += `<tr><td colspan="3" style="text-align: right; border: 1px solid #ddd; padding: 5px;"><strong>VALOR TOTAL: ${formatCurrency(totalValue)}</strong></td></tr>`;
-            paymentPlanHtml += '</tbody></table>';
-
-            const planText = selectedPlan === 'A' ? 'Opción A (50% Inicial / Máximo 2 meses)' : 'Opción B (25% Inicial / Máximo 4 meses)';
-            const maxMonths = selectedPlan === 'A' ? '2 meses' : '4 meses';
-
-            const agreementHTML = `
-                <div style="padding: 20px; color: #333;">
-                    <h2 style="text-align: center; color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 5px; margin-bottom: 15px;">CONTRATO DE APARTADO Y CONDICIONES DE VENTA</h2>
+            $('pdfContent').innerHTML = `
+                <div style="font-family:Arial,sans-serif;">
+                    <h3 style="text-align:center; color:#007bff; border-bottom:2px solid #007bff; padding-bottom:5px; margin-bottom:10px;">CONTRATO DE APARTADO</h3>
                     
-                    <h4 style="margin-top: 20px;">DATOS DEL PRODUCTO Y CLIENTE</h4>
-                    <ul style="list-style-type: none; padding: 0; font-size: 10pt;">
-                        <li><strong>Cliente:</strong> ${clientName}</li>
-                        <li><strong>Documento:</strong> ${docType} ${docNumber}</li>
-                        <li><strong>Teléfono:</strong> ${clientPhone}</li>
-                        <li><strong>Producto Apartado:</strong> ${productName}</li>
-                        <li><strong>Valor Total:</strong> ${formatCurrency(totalValue)}</li>
-                        <li><strong>Opción Elegida:</strong> ${planText}</li>
-                        <li><strong>Fecha de Inicio:</strong> ${startDate.toLocaleDateString('es-CO')}</li>
-                    </ul>
+                    <div style="margin-bottom:10px;">
+                        <strong>CLIENTE:</strong> ${data.client} | <strong>${data.docType}</strong> ${data.docNum} | <strong>TEL:</strong> ${data.phone}<br>
+                        <strong>PRODUCTO:</strong> ${data.product} | <strong>VALOR TOTAL:</strong> ${formatCOP(data.total)}<br>
+                        <strong>PLAN:</strong> Opción ${data.plan} | <strong>INICIO:</strong> ${data.start.toLocaleDateString('es-CO')}
+                    </div>
 
-                    <h4 style="margin-top: 20px;">PLAN DE PAGOS DETALLADO</h4>
-                    ${paymentPlanHtml}
+                    <h5 style="margin-top:15px; margin-bottom:5px;">PLAN DE PAGOS</h5>
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:9pt;">
+                        <thead><tr style="background:#f2f2f2;"><th style="border:1px solid #ddd; padding:4px;">Descripción</th><th style="border:1px solid #ddd; padding:4px;">Monto</th><th style="border:1px solid #ddd; padding:4px;">Fecha</th></tr></thead>
+                        <tbody>${tableRows}</tbody>
+                        <tfoot><tr><td colspan="2" style="text-align:right; border:1px solid #ddd; padding:4px;"><strong>TOTAL</strong></td><td style="border:1px solid #ddd; padding:4px;"><strong>${formatCOP(data.total)}</strong></td></tr></tfoot>
+                    </table>
 
-                    <h4 style="margin-top: 20px;">CLÁUSULAS Y COMPROMISOS</h4>
-                    <ol style="font-size: 9.5pt; line-height: 1.5;">
-                        <li>**Cuota Inicial y Plazos:** El plazo máximo para completar el pago del 100% es de **${maxMonths}**. Los pagos restantes son estrictamente mensuales.</li>
-                        <li>**Entrega de la Mercancía:** La entrega se realiza **ÚNICAMENTE** al cubrir el 100% del valor total.</li>
-                        <li>**Política de Cancelación y Devoluciones (Protección al Vendedor):**
-                            <ul>
-                                <li>**Desistimiento (0-30 días):** Si el cliente desiste dentro de los primeros 30 días calendario, se realiza la devolución del 100% del dinero abonado.</li>
-                                <li>**Cancelación Posterior o Incumplimiento del Plazo:** Después de los 30 días o si no se completa el pago en el plazo máximo, **NO hay reembolso**. El dinero retenido se considera penalidad por manejo administrativo y costo de oportunidad.</li>
-                            </ul>
-                            <p style="margin-top: 5px; font-weight: bold;">*Fecha Límite para Devolución: ${refundDate}</p>
-                        </li>
-                        <li>**Abandono de la Compra:** Tres (3) meses continuos sin realizar ningún pago a partir de la fecha de la última cuota generan terminación del contrato y pérdida total del dinero abonado.
-                            <p style="margin-top: 5px; font-weight: bold;">*Fecha Límite de Abandono: ${abandonmentDate}</p>
-                        </li>
-                        <li>**Precio Fijo:** El precio acordado del producto (${formatCurrency(totalValue)}) es fijo y no estará sujeto a variaciones durante el periodo de apartado.</li>
+                    <h5 style="margin-top:15px; margin-bottom:5px;">TÉRMINOS Y CONDICIONES</h5>
+                    <ol style="font-size:8pt; line-height:1.4; margin:0; padding-left:15px;">
+                        <li><strong>Plazo:</strong> ${data.plan==='A'?'2 meses':'4 meses'} máximo para completar el 100% del pago.</li>
+                        <li><strong>Entrega:</strong> Solo al completar el 100% del valor total.</li>
+                        <li><strong>Devoluciones:</strong> Dentro de 30 días se devuelve el 100%. Después de 30 días o vencido el plazo, NO hay reembolso. <strong>Límite: ${refundDate.toLocaleDateString('es-CO')}</strong></li>
+                        <li><strong>Abandono:</strong> 3 meses sin pago generan pérdida total del dinero. <strong>Límite: ${abandonDate.toLocaleDateString('es-CO')}</strong></li>
+                        <li><strong>Precio fijo:</strong> ${formatCOP(data.total)} sin variaciones durante el apartado.</li>
                     </ol>
 
-                    <h4 style="margin-top: 30px; text-align: center;">ACEPTACIÓN Y FIRMA</h4>
-                    <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 10pt;">
-                        <div style="width: 45%; border-top: 1px solid #333; padding-top: 5px; text-align: center;">
-                            **VENDEDOR**<br>
-                            C.C. / C.E.:
+                    <div style="display:flex; justify-content:space-between; margin-top:40px; font-size:9pt;">
+                        <div style="width:45%; border-top:1px solid #000; padding-top:5px; text-align:center;">
+                            <strong>VENDEDOR</strong><br>C.C./C.E.:_______________
                         </div>
-                        <div style="width: 45%; border-top: 1px solid #333; padding-top: 5px; text-align: center;">
-                            **CLIENTE**<br>
-                            ${docType}: ${docNumber}
+                        <div style="width:45%; border-top:1px solid #000; padding-top:5px; text-align:center;">
+                            <strong>CLIENTE</strong><br>${data.docType}: ${data.docNum}
                         </div>
                     </div>
-                    <p style="text-align: center; margin-top: 20px; font-size: 8pt;">Declaro que he leído, entendido y aceptado en su totalidad los términos de este Contrato de Apartado.</p>
+                    <p style="text-align:center; margin-top:15px; font-size:7pt;">Acepto los términos del presente contrato de apartado.</p>
                 </div>
             `;
-            document.getElementById('pdfContent').innerHTML = agreementHTML;
+
+            $('paymentSummary').innerHTML = `✅ Contrato generado | ${payments.length} cuotas | Total: ${formatCOP(data.total)}`;
+            $('resultsSection').style.display = 'block';
         }
 
-        // Función para generar PDF (Contrato)
         function generatePDF() {
             const { jsPDF } = window.jspdf;
-            const pdfContent = document.getElementById('pdfContent');
+            const content = $('pdfContent');
+            content.style.display = 'block';
 
-            // Mostrar el contenido para que html2canvas pueda capturarlo correctamente
-            pdfContent.style.display = 'block'; 
-            pdfContent.style.height = 'auto';
-
-            html2canvas(pdfContent, { scale: 2, logging: false }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
+            html2canvas(content, {scale:2}).then(canvas => {
                 const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210; 
-                const pageHeight = 295;  
-                const imgHeight = canvas.height * imgWidth / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-
-                pdf.save("Contrato_Apartado_" + document.getElementById('clientName').value.replace(/\s/g, '_') + ".pdf");
-                
-                // Ocultar de nuevo el contenido después de generar el PDF
-                pdfContent.style.display = 'none';
-                pdfContent.style.height = '0';
+                const imgData = canvas.toDataURL('image/png');
+                const imgW = 210, imgH = canvas.height * imgW / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, imgW, imgH);
+                pdf.save(`Contrato_${$('clientName').value.replace(/\s/g,'_')}.pdf`);
+                content.style.display = 'none';
             });
         }
 
-        // Función para generar CSV (Plan de Pagos/Excel)
         function generateCSV() {
-            const productName = document.getElementById('productName').value;
-            const clientName = document.getElementById('clientName').value;
-            const totalValue = document.getElementById('totalValue').value;
-            const payments = Array.from(document.getElementById('paymentTableBody').rows).map(row => {
-                const cells = row.cells;
-                return {
-                    pago: cells[0].textContent,
-                    monto: cells[1].textContent.replace('$', '').replace(/\./g, ''), // Limpiar formato para Excel
-                    fecha: cells[2].textContent,
-                };
+            const rows = [['Producto','Cliente','Total','Cuota','Monto','Fecha']];
+            document.querySelectorAll('#pdfContent table tbody tr').forEach(tr => {
+                const cells = tr.querySelectorAll('td');
+                if(cells.length === 3) {
+                    rows.push([
+                        $('productName').value,
+                        $('clientName').value,
+                        $('totalValue').value,
+                        cells[0].textContent,
+                        cells[1].textContent.replace(/[^\d]/g,''),
+                        cells[2].textContent
+                    ]);
+                }
             });
-
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Producto,Cliente,Valor Total,No. Cuota,Monto a Pagar,Fecha Límite\n";
             
-            payments.forEach(p => {
-                csvContent += `${productName},${clientName},${totalValue},${p.pago},${p.monto},${p.fecha}\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "Plan_Pagos_" + clientName.replace(/\s/g, '_') + ".csv");
-            document.body.appendChild(link);
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Plan_${$('clientName').value.replace(/\s/g,'_')}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
     </script>
 </body>
